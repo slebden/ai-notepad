@@ -10,7 +10,7 @@ import {
   Box,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { getNotes, deleteNote } from '../api';
+import { getAllNotes, deleteNote } from '../api';
 import { Note } from '../types';
 
 interface NoteListProps {
@@ -22,15 +22,15 @@ export default function NoteList({ onSelectNote, selectedNote }: NoteListProps) 
   const { data: notes = [], refetch } = useQuery<Note[]>(
     'notes',
     () => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return getNotes(thirtyDaysAgo, new Date());
+      console.log('Fetching all notes...');
+      return getAllNotes();
     },
     { 
-      refetchInterval: 5000,
       enabled: true 
     }
   );
+
+  console.log('Current notes:', notes.length, 'notes loaded');
 
   const handleDelete = async (timestamp: string) => {
     await deleteNote(timestamp);

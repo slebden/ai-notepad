@@ -3,6 +3,7 @@ import { Note } from './types';
 
 const api = axios.create({
   baseURL: 'http://localhost:8000',
+  timeout: 30000, // 30 second timeout
 });
 
 export const getNotes = async (start: Date, end: Date): Promise<Note[]> => {
@@ -15,12 +16,17 @@ export const getNotes = async (start: Date, end: Date): Promise<Note[]> => {
   return response.data;
 };
 
+export const getAllNotes = async (): Promise<Note[]> => {
+  const response = await api.get('/notes/all');
+  return response.data;
+};
+
 export const getNote = async (timestamp: string): Promise<Note> => {
   const response = await api.get(`/notes/${timestamp}`);
   return response.data;
 };
 
-export const createNote = async (note: Omit<Note, 'timestamp'>): Promise<Note> => {
+export const createNote = async (note: { title?: string; contents: string }): Promise<Note> => {
   const response = await api.post('/notes/', note);
   return response.data;
 };

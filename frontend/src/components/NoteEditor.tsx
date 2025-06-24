@@ -18,7 +18,6 @@ interface NoteEditorProps {
 export default function NoteEditor({ noteId, onClose }: NoteEditorProps) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
-  const [summary, setSummary] = useState('');
   const [contents, setContents] = useState('');
 
   const { data: note } = useQuery<Note>(
@@ -28,27 +27,38 @@ export default function NoteEditor({ noteId, onClose }: NoteEditorProps) {
       enabled: !!noteId,
       onSuccess: (data) => {
         setTitle(data.title);
-        setSummary(data.summary);
         setContents(data.contents);
       },
     }
   );
 
   const createMutation = useMutation(createNote, {
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Note created successfully:', data);
       queryClient.invalidateQueries('notes');
       setTitle('');
-      setSummary('');
       setContents('');
       onClose();
+    },
+    onError: (error: any) => {
+      console.error('Error creating note:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      alert(`Failed to create note: ${error.response?.data?.detail || error.message || 'Unknown error'}`);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!contents.trim()) {
+      alert('Please enter some content for the note.');
+      return;
+    }
+    
+    console.log('Submitting note:', { title, contents });
     createMutation.mutate({
       title,
-      summary,
       contents,
     });
   };
@@ -62,19 +72,10 @@ export default function NoteEditor({ noteId, onClose }: NoteEditorProps) {
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
-            label="Title"
+            label="Title (optional - will be auto-generated if left empty)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             margin="normal"
-            required
-          />
-          <TextField
-            fullWidth
-            label="Summary"
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            margin="normal"
-            required
           />
           <TextField
             fullWidth
@@ -90,9 +91,10 @@ export default function NoteEditor({ noteId, onClose }: NoteEditorProps) {
             type="submit"
             variant="contained"
             color="primary"
+            disabled={createMutation.isLoading}
             sx={{ mt: 2 }}
           >
-            Create Note
+            {createMutation.isLoading ? 'Creating...' : 'Create Note'}
           </Button>
         </Box>
       </Paper>
