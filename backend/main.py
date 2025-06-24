@@ -306,6 +306,46 @@ async def create_note(note_in: NoteIn):
     print(f"Note created successfully: {note.title} (total time: {time.time() - start_time:.2f}s)")
     return note
 
+@app.put("/notes/{timestamp}", response_model=Note, tags=["Notes"], summary="Update an existing note")
+async def update_note(timestamp: datetime, note_in: NoteIn):
+    """
+    Update an existing note. The title and summary will be regenerated if not provided.
+    
+    - **timestamp**: The exact timestamp when the note was created
+    - **title**: The title of the note (optional - will be regenerated if not provided)
+    - **contents**: The full content of the note
+    """
+    start_time = time.time()
+    
+    print(f"Received note update request for timestamp {timestamp}: title='{note_in.title}', contents_length={len(note_in.contents)}")
+    
+    # Check if note exists
+    existing_note = storage.get_note(timestamp)
+    if existing_note is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    # Generate title if not provided or empty
+    title_start = time.time()
+    title = note_in.title if note_in.title and note_in.title.strip() else generate_title(note_in.contents)
+    print(f"Title generation took {time.time() - title_start:.2f} seconds")
+    
+    # Generate summary
+    summary_start = time.time()
+    summary = generate_summary(note_in.contents)
+    print(f"Summary generation took {time.time() - summary_start:.2f} seconds")
+    
+    # Create updated note with same timestamp
+    updated_note = Note(
+        timestamp=timestamp,  # Keep the original timestamp
+        title=title,
+        contents=note_in.contents,
+        summary=summary
+    )
+    
+    storage.save_note(updated_note)
+    print(f"Note updated successfully: {updated_note.title} (total time: {time.time() - start_time:.2f}s)")
+    return updated_note
+
 @app.get("/notes/", response_model=List[Note], tags=["Notes"], summary="Get notes in a date range")
 async def get_notes_in_range(start: datetime, end: datetime):
     """

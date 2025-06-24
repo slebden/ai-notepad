@@ -31,6 +31,11 @@ export const createNote = async (note: { title?: string; contents: string }): Pr
   return response.data;
 };
 
+export const updateNote = async (timestamp: string, note: { title?: string; contents: string }): Promise<Note> => {
+  const response = await api.put(`/notes/${timestamp}`, note);
+  return response.data;
+};
+
 export const deleteNote = async (timestamp: string): Promise<void> => {
   await api.delete(`/notes/${timestamp}`);
 }; 
