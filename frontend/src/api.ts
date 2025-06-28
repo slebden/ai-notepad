@@ -38,4 +38,17 @@ export const updateNote = async (timestamp: string, note: { title?: string; cont
 
 export const deleteNote = async (timestamp: string): Promise<void> => {
   await api.delete(`/notes/${timestamp}`);
+};
+
+export const transcribeAudio = async (audioBlob: Blob): Promise<{ transcription: string }> => {
+  const formData = new FormData();
+  formData.append('audio_file', audioBlob, 'recording.wav');
+  
+  const response = await axios.post('http://localhost:8001/transcribe/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 30000, // 30 second timeout for transcription
+  });
+  return response.data;
 }; 

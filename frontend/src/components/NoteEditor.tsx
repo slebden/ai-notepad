@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import {
   Box,
@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { getNote, createNote, updateNote } from '../api';
 import { Note } from '../types';
+import VoiceRecorder from './VoiceRecorder';
 
 interface NoteEditorProps {
   noteId: string | null;
@@ -21,6 +22,7 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
   const [title, setTitle] = useState('');
   const [contents, setContents] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const contentsRef = useRef<HTMLTextAreaElement>(null);
 
   // Clear form when entering create mode
   useEffect(() => {
@@ -119,6 +121,28 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
     setIsEditing(false);
   };
 
+  const handleTranscriptionComplete = (transcribedText: string) => {
+    const textarea = contentsRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentText = contents;
+      
+      // Insert transcribed text at cursor position
+      const newText = currentText.substring(0, start) + transcribedText + currentText.substring(end);
+      setContents(newText);
+      
+      // Set cursor position after the inserted text
+      setTimeout(() => {
+        if (textarea) {
+          const newCursorPos = start + transcribedText.length;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+          textarea.focus();
+        }
+      }, 0);
+    }
+  };
+
   // Show create form if isCreating is true or if no note is selected
   if (isCreating || !noteId) {
     return (
@@ -134,16 +158,22 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
             onChange={(e) => setTitle(e.target.value)}
             margin="normal"
           />
-          <TextField
-            fullWidth
-            label="Contents"
-            value={contents}
-            onChange={(e) => setContents(e.target.value)}
-            margin="normal"
-            required
-            multiline
-            rows={10}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Contents"
+              value={contents}
+              onChange={(e) => setContents(e.target.value)}
+              required
+              multiline
+              rows={10}
+              inputRef={contentsRef}
+            />
+            <VoiceRecorder 
+              onTranscriptionComplete={handleTranscriptionComplete}
+              disabled={createMutation.isLoading}
+            />
+          </Box>
           <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
             <Button
               type="submit"
@@ -181,16 +211,22 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
             onChange={(e) => setTitle(e.target.value)}
             margin="normal"
           />
-          <TextField
-            fullWidth
-            label="Contents"
-            value={contents}
-            onChange={(e) => setContents(e.target.value)}
-            margin="normal"
-            required
-            multiline
-            rows={10}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 2 }}>
+            <TextField
+              fullWidth
+              label="Contents"
+              value={contents}
+              onChange={(e) => setContents(e.target.value)}
+              required
+              multiline
+              rows={10}
+              inputRef={contentsRef}
+            />
+            <VoiceRecorder 
+              onTranscriptionComplete={handleTranscriptionComplete}
+              disabled={updateMutation.isLoading}
+            />
+          </Box>
           <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
             <Button
               type="submit"

@@ -1,22 +1,22 @@
 [tool.poetry]
-name = "notepad-backend"
+name = "transcription-service"
 version = "0.1.0"
-description = "Backend service for the notepad application"
+description = "Voice transcription service for the notepad application"
 authors = ["slebden@gmail.com"]
 readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 fastapi = "^0.104.1"
 uvicorn = "^0.24.0"
 pydantic = "^2.4.2"
-pyyaml = "^6.0.1"
-python-dateutil = "^2.8.2"
-transformers = "^4.39.3"
-torch = {version = "^2.2.2", source = "pytorch"}
-accelerate = "^0.28.0"
 python-dotenv = "^1.0.0"
+numpy = "^1.24.0"
+torch = {version = "^2.2.2", source = "pytorch"}
+openai-whisper = "^20250625"
+python-multipart = "^0.0.20"
+ffmpeg-python = "^0.2.0"
 
 [[tool.poetry.source]]
 name = "pytorch"
