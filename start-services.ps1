@@ -15,6 +15,15 @@ function Test-Port {
     }
 }
 
+# Get local IP address
+$localIP = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Ethernet* | Where-Object {$_.IPAddress -notlike "169.254.*"} | Select-Object -First 1).IPAddress
+if (-not $localIP) {
+    $localIP = (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias Wi-Fi* | Where-Object {$_.IPAddress -notlike "169.254.*"} | Select-Object -First 1).IPAddress
+}
+if (-not $localIP) {
+    $localIP = "localhost"
+}
+
 # Check if ports are available
 if (Test-Port 8001) {
     Write-Host "Warning: Port 8001 is already in use. Transcription service may not start properly." -ForegroundColor Yellow
@@ -35,9 +44,12 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; poetr
 
 Write-Host ""
 Write-Host "Services are starting..." -ForegroundColor Green
-Write-Host "- Main Backend: http://localhost:8000" -ForegroundColor White
-Write-Host "- Transcription Service: http://localhost:8001" -ForegroundColor White
-Write-Host "- Frontend: http://localhost:3000" -ForegroundColor White
+Write-Host "- Main Backend: http://localhost:8000 or http://$localIP:8000" -ForegroundColor White
+Write-Host "- Transcription Service: http://localhost:8001 or http://$localIP:8001" -ForegroundColor White
+Write-Host "- Frontend: http://localhost:3000 or http://$localIP:3000" -ForegroundColor White
+Write-Host ""
+Write-Host "Local Network Access:" -ForegroundColor Cyan
+Write-Host "- Frontend: http://$localIP:3000" -ForegroundColor White
 Write-Host ""
 Write-Host "Press any key to close this window..." -ForegroundColor Gray
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown") 

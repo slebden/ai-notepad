@@ -2,6 +2,8 @@
 
 A full-stack notepad application with a FastAPI backend, React frontend, and voice transcription microservice.
 
+This project was mostly created using [Cursor](https://www.cursor.com/)
+
 ## Project Structure
 
 - `backend/` - FastAPI backend service (notes management)
