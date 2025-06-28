@@ -5,13 +5,13 @@ import { Note } from './types';
 const getApiBaseUrl = () => {
   const hostname = window.location.hostname;
   const port = hostname === 'localhost' || hostname === '127.0.0.1' ? '8000' : '8000';
-  return `http://${hostname}:${port}`;
+  return `https://${hostname}:${port}`;
 };
 
 const getTranscriptionBaseUrl = () => {
   const hostname = window.location.hostname;
   const port = hostname === 'localhost' || hostname === '127.0.0.1' ? '8001' : '8001';
-  return `http://${hostname}:${port}`;
+  return `https://${hostname}:${port}`;
 };
 
 const api = axios.create({
