@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { IconButton, CircularProgress, Tooltip } from '@mui/material';
+import { IconButton, CircularProgress, Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { Mic, Stop, MicOff } from '@mui/icons-material';
 import { transcribeAudio } from '../api';
 
@@ -14,6 +14,8 @@ export default function VoiceRecorder({ onTranscriptionComplete, disabled = fals
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const startRecording = async () => {
     try {
@@ -142,7 +144,11 @@ export default function VoiceRecorder({ onTranscriptionComplete, disabled = fals
   if (hasPermission === false) {
     return (
       <Tooltip title="Microphone access denied">
-        <IconButton disabled color="error">
+        <IconButton 
+          disabled 
+          color="error"
+          size={isMobile ? "large" : "medium"}
+        >
           <MicOff />
         </IconButton>
       </Tooltip>
@@ -155,15 +161,18 @@ export default function VoiceRecorder({ onTranscriptionComplete, disabled = fals
         onClick={handleClick}
         disabled={disabled || isTranscribing}
         color={isRecording ? "error" : "primary"}
+        size={isMobile ? "large" : "medium"}
         sx={{
           backgroundColor: isRecording ? 'rgba(244, 67, 54, 0.1)' : 'rgba(25, 118, 210, 0.1)',
           '&:hover': {
             backgroundColor: isRecording ? 'rgba(244, 67, 54, 0.2)' : 'rgba(25, 118, 210, 0.2)',
-          }
+          },
+          minWidth: isMobile ? 56 : 48,
+          minHeight: isMobile ? 56 : 48,
         }}
       >
         {isTranscribing ? (
-          <CircularProgress size={20} />
+          <CircularProgress size={isMobile ? 24 : 20} />
         ) : isRecording ? (
           <Stop />
         ) : (

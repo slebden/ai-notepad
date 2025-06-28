@@ -6,10 +6,17 @@ import {
   Button,
   Typography,
   Paper,
+  useMediaQuery,
+  useTheme,
+  Stack,
+  IconButton,
 } from '@mui/material';
 import { getNote, createNote, updateNote } from '../api';
 import { Note } from '../types';
 import VoiceRecorder from './VoiceRecorder';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 interface NoteEditorProps {
   noteId: string | null;
@@ -23,6 +30,8 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
   const [contents, setContents] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const contentsRef = useRef<HTMLTextAreaElement>(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Clear form when entering create mode
   useEffect(() => {
@@ -146,10 +155,7 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
   // Show create form if isCreating is true or if no note is selected
   if (isCreating || !noteId) {
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Create New Note
-        </Typography>
+      <Paper sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
@@ -157,8 +163,9 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             margin="normal"
+            sx={{ mb: 2 }}
           />
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
             <TextField
               fullWidth
               label="Contents"
@@ -166,7 +173,7 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
               onChange={(e) => setContents(e.target.value)}
               required
               multiline
-              rows={10}
+              rows={isMobile ? 8 : 12}
               inputRef={contentsRef}
             />
             <VoiceRecorder 
@@ -174,23 +181,25 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
               disabled={createMutation.isLoading}
             />
           </Box>
-          <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              onClick={onClose}
+              disabled={createMutation.isLoading}
+              startIcon={<CancelIcon />}
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               variant="contained"
               color="primary"
               disabled={createMutation.isLoading}
+              startIcon={<SaveIcon />}
             >
               {createMutation.isLoading ? 'Creating...' : 'Create Note'}
             </Button>
-            <Button
-              variant="outlined"
-              onClick={onClose}
-              disabled={createMutation.isLoading}
-            >
-              Cancel
-            </Button>
-          </Box>
+          </Stack>
         </Box>
       </Paper>
     );
@@ -199,10 +208,7 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
   // Show edit form if editing
   if (isEditing) {
     return (
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" gutterBottom>
-          Edit Note
-        </Typography>
+      <Paper sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
             fullWidth
@@ -210,8 +216,9 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             margin="normal"
+            sx={{ mb: 2 }}
           />
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mt: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 2 }}>
             <TextField
               fullWidth
               label="Contents"
@@ -219,7 +226,7 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
               onChange={(e) => setContents(e.target.value)}
               required
               multiline
-              rows={10}
+              rows={isMobile ? 8 : 12}
               inputRef={contentsRef}
             />
             <VoiceRecorder 
@@ -227,23 +234,25 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
               disabled={updateMutation.isLoading}
             />
           </Box>
-          <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Button
+              variant="outlined"
+              onClick={handleCancel}
+              disabled={updateMutation.isLoading}
+              startIcon={<CancelIcon />}
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               variant="contained"
               color="primary"
               disabled={updateMutation.isLoading}
+              startIcon={<SaveIcon />}
             >
               {updateMutation.isLoading ? 'Updating...' : 'Update Note'}
             </Button>
-            <Button
-              variant="outlined"
-              onClick={handleCancel}
-              disabled={updateMutation.isLoading}
-            >
-              Cancel
-            </Button>
-          </Box>
+          </Stack>
         </Box>
       </Paper>
     );
@@ -251,23 +260,36 @@ export default function NoteEditor({ noteId, isCreating, onClose }: NoteEditorPr
 
   // Show note view if a note is selected and not editing
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper sx={{ p: { xs: 2, md: 3 }, height: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">
+        <Typography variant="h5" component="h2" sx={{ fontWeight: 600 }}>
           {note?.title}
         </Typography>
         <Button
           variant="outlined"
           onClick={handleEdit}
-          size="small"
+          size={isMobile ? "small" : "medium"}
+          startIcon={<SaveIcon />}
         >
           Edit
         </Button>
       </Box>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+      <Typography 
+        variant="subtitle1" 
+        color="text.secondary" 
+        gutterBottom
+        sx={{ mb: 2, fontStyle: 'italic' }}
+      >
         {note?.summary}
       </Typography>
-      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+      <Typography 
+        variant="body1" 
+        sx={{ 
+          whiteSpace: 'pre-wrap',
+          lineHeight: 1.6,
+          fontSize: { xs: '0.9rem', md: '1rem' }
+        }}
+      >
         {note?.contents}
       </Typography>
     </Paper>
