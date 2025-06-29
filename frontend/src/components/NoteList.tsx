@@ -12,6 +12,7 @@ import {
   Chip,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import { getAllNotes, deleteNote } from '../api';
 import { Note } from '../types';
 
@@ -122,10 +123,35 @@ export default function NoteList({ onSelectNote, selectedNote }: NoteListProps) 
                           WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
                           lineHeight: 1.4,
+                          mb: 1,
                         }}
                       >
                         {note.summary}
                       </Typography>
+                      {note.tags && note.tags.length > 0 && (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {note.tags.slice(0, 3).map((tag, tagIndex) => (
+                            <Chip
+                              key={tagIndex}
+                              label={tag}
+                              size="small"
+                              icon={<LocalOfferIcon />}
+                              variant="outlined"
+                              color="secondary"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          ))}
+                          {note.tags.length > 3 && (
+                            <Chip
+                              label={`+${note.tags.length - 3}`}
+                              size="small"
+                              variant="outlined"
+                              color="default"
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          )}
+                        </Box>
+                      )}
                     </Box>
                   }
                 />

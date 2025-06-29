@@ -206,6 +206,118 @@ function App() {
             </Fab>
           )}
         </Box>
+        <style>{`
+          body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+              'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+              sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
+          
+          .note-editor {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+          }
+          
+          .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+          }
+          
+          .title-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+          }
+          
+          .title-input:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+          }
+          
+          .editor-actions {
+            display: flex;
+            gap: 8px;
+          }
+          
+          .save-button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          
+          .save-button:hover {
+            background: #e0e0e0;
+          }
+          
+          .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+          
+          .tags-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          
+          .tags-input {
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+          }
+          
+          .tags-input:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+          }
+          
+          .tags-hint {
+            font-size: 12px;
+            color: #666;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid #1976d2;
+          }
+          
+          .content-textarea {
+            width: 100%;
+            padding: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 200px;
+            line-height: 1.5;
+          }
+          
+          .content-textarea:focus {
+            outline: none;
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.2);
+          }
+          
+          .content-textarea::placeholder {
+            color: #999;
+          }
+        `}</style>
       </ThemeProvider>
     </QueryClientProvider>
   );

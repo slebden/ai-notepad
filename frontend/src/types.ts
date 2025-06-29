@@ -3,4 +3,5 @@ export interface Note {
   title: string;
   summary: string;
   contents: string;
+  tags: string[];
 } 

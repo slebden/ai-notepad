@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class Note(BaseModel):
     timestamp: datetime = Field(
@@ -26,6 +26,11 @@ class Note(BaseModel):
         example="Today we discussed the project timeline. Key points:\n- Phase 1: Complete by end of month\n- Phase 2: Start next week\n- Budget approved for additional resources",
         min_length=1
     )
+    tags: List[str] = Field(
+        description="Tags/categories for the note (auto-generated if not provided)",
+        example=["meeting", "project", "timeline"],
+        default_factory=list
+    )
 
     class Config:
         json_encoders = {
@@ -36,7 +41,8 @@ class Note(BaseModel):
                 "timestamp": "2024-01-15T10:30:00",
                 "title": "Project Meeting Notes",
                 "summary": "Discussed project timeline and resource allocation",
-                "contents": "Meeting with the development team to discuss project timeline and resource allocation. Key decisions made:\n\n1. Phase 1 completion target: End of January\n2. Additional developers to be hired\n3. Budget approved for new tools\n\nNext meeting scheduled for next week."
+                "contents": "Meeting with the development team to discuss project timeline and resource allocation. Key decisions made:\n\n1. Phase 1 completion target: End of January\n2. Additional developers to be hired\n3. Budget approved for new tools\n\nNext meeting scheduled for next week.",
+                "tags": ["meeting", "project", "planning"]
             }
         }
 
@@ -51,4 +57,9 @@ class NoteIn(BaseModel):
         description="The full content of the note",
         example="Today we discussed the project timeline. Key points:\n- Phase 1: Complete by end of month\n- Phase 2: Start next week\n- Budget approved for additional resources",
         min_length=1
+    )
+    tags: Optional[str] = Field(
+        description="Tags/categories separated by commas (optional - will be auto-generated if not provided). Can also use 'category:' or 'tag:' prefixes.",
+        example="meeting, project, timeline",
+        default=""
     ) 

@@ -274,76 +274,248 @@ def generate_title(content: str) -> str:
         else:
             return " ".join(words[:5])
 
-@app.post("/notes/", response_model=Note, tags=["Notes"], summary="Create a new note with AI-generated title and summary")
+def generate_tags(content: str) -> list[str]:
+    """
+    Generates tags for the given content using the local model.
+    """
+    if not model or not tokenizer:
+        # Fallback: return empty list
+        return []
+    
+    try:
+        # Check if we're using Mistral or a different model
+        if "mistral" in model.config._name_or_path.lower():
+            # Mistral instruct models follow a specific prompt format.
+            messages = [
+                {"role": "user", "content": f"Please generate up to 3 relevant tags for the following note. Return only the tags separated by commas, no explanations:\n\n{content}"}
+            ]
+            prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        else:
+            # For other models, use a simple prompt
+            prompt = f"Generate up to 3 relevant tags for this note, separated by commas: {content}\nTags:"
+        
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+
+        # Generate the output
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=30,
+            pad_token_id=tokenizer.eos_token_id,
+            do_sample=True,
+            temperature=0.3,
+            top_p=0.95,
+        )
+        
+        # Decode the generated tokens to a string
+        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Extract the response based on model type
+        if "mistral" in model.config._name_or_path.lower():
+            tags_text = generated_text.split("[/INST]")[-1].strip()
+        else:
+            tags_text = generated_text.split("Tags:")[-1].strip()
+        
+        # Parse tags
+        tags = [tag.strip().lower() for tag in tags_text.split(",") if tag.strip()]
+        # Limit to 3 tags and remove duplicates
+        tags = list(dict.fromkeys(tags))[:3]
+        
+        return tags
+    except Exception as e:
+        print(f"Error generating tags: {e}")
+        # Fallback: return empty list
+        return []
+
+def parse_user_tags(tags_input: str) -> list[str]:
+    """
+    Parses user-provided tags from various formats.
+    Supports: "tag1, tag2", "category: something", "tags: tag1, tag2"
+    """
+    if not tags_input or not tags_input.strip():
+        return []
+    
+    tags_input = tags_input.strip().lower()
+    
+    # Handle different input formats
+    if "category:" in tags_input or "tag:" in tags_input or "tags:" in tags_input:
+        # Extract tags after colons
+        parts = tags_input.split(",")
+        tags = []
+        for part in parts:
+            part = part.strip()
+            if ":" in part:
+                # Extract the value after the colon
+                value = part.split(":", 1)[1].strip()
+                if value:
+                    tags.append(value)
+            else:
+                # Direct tag
+                if part:
+                    tags.append(part)
+        return tags
+    else:
+        # Simple comma-separated tags
+        tags = [tag.strip() for tag in tags_input.split(",") if tag.strip()]
+        return tags
+
+def extract_tags_from_content(content: str) -> tuple[list[str], str]:
+    """
+    Extracts tags from the beginning of the content and returns cleaned content.
+    Handles patterns like:
+    - "tag: journal. this was a hard day"
+    - "category: work, tag: important. meeting notes..."
+    - "tags: personal, diary. today I..."
+    """
+    lines = content.split('\n')
+    if not lines:
+        return [], content
+    
+    first_line = lines[0].strip()
+    tags = []
+    cleaned_content = content
+    
+    # Check if first line contains tag patterns
+    tag_patterns = ['tag:', 'tags:', 'category:', 'categories:']
+    has_tag_pattern = any(pattern in first_line.lower() for pattern in tag_patterns)
+    
+    if has_tag_pattern:
+        # Extract tags from first line
+        parts = first_line.split('.', 1)  # Split on first period
+        if len(parts) > 1:
+            tag_part = parts[0].strip()
+            content_part = parts[1].strip()
+            
+            # Parse tags from the tag part
+            tags = parse_user_tags(tag_part)
+            
+            # Reconstruct content without the tag part
+            if content_part:
+                cleaned_content = content_part + '\n' + '\n'.join(lines[1:])
+            else:
+                cleaned_content = '\n'.join(lines[1:])
+        else:
+            # No period found, try to extract tags anyway
+            tags = parse_user_tags(first_line)
+            cleaned_content = '\n'.join(lines[1:])
+    
+    return tags, cleaned_content.strip()
+
+@app.post("/notes/", response_model=Note, tags=["Notes"], summary="Create a new note with AI-generated title, summary, and tags")
 async def create_note(note_in: NoteIn):
     """
-    Create a new note. The title and summary will be generated automatically if not provided.
+    Create a new note. The title, summary, and tags will be generated automatically if not provided.
     
     - **title**: The title of the note (optional - will be auto-generated if not provided)
     - **contents**: The full content of the note
+    - **tags**: Tags/categories separated by commas (optional - will be auto-generated if not provided)
     """
     start_time = time.time()
     
-    print(f"Received note creation request: title='{note_in.title}', contents_length={len(note_in.contents)}")
+    print(f"Received note creation request: title='{note_in.title}', contents_length={len(note_in.contents)}, tags='{note_in.tags}'")
+    
+    # Extract tags from content first
+    content_tags, cleaned_content = extract_tags_from_content(note_in.contents)
+    print(f"Extracted tags from content: {content_tags}")
+    print(f"Cleaned content length: {len(cleaned_content)}")
+    
+    # Process tags (user input takes precedence over content tags)
+    tags_start = time.time()
+    if note_in.tags and note_in.tags.strip():
+        # User provided tags in the tags field
+        tags = parse_user_tags(note_in.tags)
+        print(f"User provided tags: {tags}")
+    elif content_tags:
+        # Tags found in content
+        tags = content_tags
+        print(f"Tags extracted from content: {tags}")
+    else:
+        # Generate tags using AI
+        tags = generate_tags(cleaned_content)
+        print(f"AI generated tags: {tags}")
+    print(f"Tags processing took {time.time() - tags_start:.2f} seconds")
     
     # Generate title if not provided or empty
     title_start = time.time()
-    title = note_in.title if note_in.title and note_in.title.strip() else generate_title(note_in.contents)
+    title = note_in.title if note_in.title and note_in.title.strip() else generate_title(cleaned_content)
     print(f"Title generation took {time.time() - title_start:.2f} seconds")
     
     # Generate summary
     summary_start = time.time()
-    summary = generate_summary(note_in.contents)
+    summary = generate_summary(cleaned_content)
     print(f"Summary generation took {time.time() - summary_start:.2f} seconds")
     
     note = Note(
         title=title,
-        contents=note_in.contents,
-        summary=summary
+        contents=cleaned_content,
+        summary=summary,
+        tags=tags
     )
     
     storage.save_note(note)
-    print(f"Note created successfully: {note.title} (total time: {time.time() - start_time:.2f}s)")
+    print(f"Note created successfully: {note.title} with tags {tags} (total time: {time.time() - start_time:.2f}s)")
     return note
 
 @app.put("/notes/{timestamp}", response_model=Note, tags=["Notes"], summary="Update an existing note")
 async def update_note(timestamp: datetime, note_in: NoteIn):
     """
-    Update an existing note. The title and summary will be regenerated if not provided.
+    Update an existing note. The title, summary, and tags will be regenerated if not provided.
     
     - **timestamp**: The exact timestamp when the note was created
     - **title**: The title of the note (optional - will be regenerated if not provided)
     - **contents**: The full content of the note
+    - **tags**: Tags/categories separated by commas (optional - will be regenerated if not provided)
     """
     start_time = time.time()
     
-    print(f"Received note update request for timestamp {timestamp}: title='{note_in.title}', contents_length={len(note_in.contents)}")
+    print(f"Received note update request for timestamp {timestamp}: title='{note_in.title}', contents_length={len(note_in.contents)}, tags='{note_in.tags}'")
     
     # Check if note exists
     existing_note = storage.get_note(timestamp)
     if existing_note is None:
         raise HTTPException(status_code=404, detail="Note not found")
     
+    # Extract tags from content first
+    content_tags, cleaned_content = extract_tags_from_content(note_in.contents)
+    print(f"Extracted tags from content: {content_tags}")
+    print(f"Cleaned content length: {len(cleaned_content)}")
+    
+    # Process tags (user input takes precedence over content tags)
+    tags_start = time.time()
+    if note_in.tags and note_in.tags.strip():
+        # User provided tags in the tags field
+        tags = parse_user_tags(note_in.tags)
+        print(f"User provided tags: {tags}")
+    elif content_tags:
+        # Tags found in content
+        tags = content_tags
+        print(f"Tags extracted from content: {tags}")
+    else:
+        # Generate tags using AI
+        tags = generate_tags(cleaned_content)
+        print(f"AI generated tags: {tags}")
+    print(f"Tags processing took {time.time() - tags_start:.2f} seconds")
+    
     # Generate title if not provided or empty
     title_start = time.time()
-    title = note_in.title if note_in.title and note_in.title.strip() else generate_title(note_in.contents)
+    title = note_in.title if note_in.title and note_in.title.strip() else generate_title(cleaned_content)
     print(f"Title generation took {time.time() - title_start:.2f} seconds")
     
     # Generate summary
     summary_start = time.time()
-    summary = generate_summary(note_in.contents)
+    summary = generate_summary(cleaned_content)
     print(f"Summary generation took {time.time() - summary_start:.2f} seconds")
     
     # Create updated note with same timestamp
     updated_note = Note(
         timestamp=timestamp,  # Keep the original timestamp
         title=title,
-        contents=note_in.contents,
-        summary=summary
+        contents=cleaned_content,
+        summary=summary,
+        tags=tags
     )
     
     storage.save_note(updated_note)
-    print(f"Note updated successfully: {updated_note.title} (total time: {time.time() - start_time:.2f}s)")
+    print(f"Note updated successfully: {updated_note.title} with tags {tags} (total time: {time.time() - start_time:.2f}s)")
     return updated_note
 
 @app.get("/notes/", response_model=List[Note], tags=["Notes"], summary="Get notes in a date range")

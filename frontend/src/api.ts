@@ -39,12 +39,12 @@ export const getNote = async (timestamp: string): Promise<Note> => {
   return response.data;
 };
 
-export const createNote = async (note: { title?: string; contents: string }): Promise<Note> => {
+export const createNote = async (note: { title?: string; contents: string; tags?: string }): Promise<Note> => {
   const response = await api.post('/notes/', note);
   return response.data;
 };
 
-export const updateNote = async (timestamp: string, note: { title?: string; contents: string }): Promise<Note> => {
+export const updateNote = async (timestamp: string, note: { title?: string; contents: string; tags?: string }): Promise<Note> => {
   const response = await api.put(`/notes/${timestamp}`, note);
   return response.data;
 };
