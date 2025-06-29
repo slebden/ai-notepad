@@ -1,166 +1,201 @@
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
-import { format } from 'date-fns';
 import {
   List,
   ListItem,
-  ListItemText,
-  ListItemButton,
   Typography,
   IconButton,
   Box,
   Divider,
   Chip,
+  Paper,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
-import { getAllNotes, deleteNote } from '../api';
+import EditIcon from '@mui/icons-material/Edit';
+import { getAllNotes, deleteNote, getNotesByTags } from '../api';
 import { Note } from '../types';
+import TagFilter from './TagFilter';
 
 interface NoteListProps {
-  onSelectNote: (timestamp: string) => void;
-  selectedNote: string | null;
+  selectedNoteId: string | null;
+  onNoteSelect: (noteId: string) => void;
+  onNoteEdit: (noteId: string) => void;
+  onNoteDelete: (noteId: string) => void;
 }
 
-export default function NoteList({ onSelectNote, selectedNote }: NoteListProps) {
-  const { data: notes = [], refetch } = useQuery<Note[]>(
-    'notes',
-    () => {
-      console.log('Fetching all notes...');
-      return getAllNotes();
-    },
-    { 
-      enabled: true 
+export default function NoteList({ 
+  selectedNoteId, 
+  onNoteSelect, 
+  onNoteEdit, 
+  onNoteDelete 
+}: NoteListProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Use different query based on whether tags are selected
+  const { data: notes = [], isLoading, error } = useQuery(
+    ['notes', selectedTags],
+    () => selectedTags.length > 0 ? getNotesByTags(selectedTags) : getAllNotes(),
+    {
+      staleTime: 30 * 1000, // 30 seconds
+      refetchOnWindowFocus: false,
     }
   );
 
-  console.log('Current notes:', notes.length, 'notes loaded');
-
-  const handleDelete = async (timestamp: string) => {
-    await deleteNote(timestamp);
-    refetch();
+  const handleTagsChange = (tags: string[]) => {
+    setSelectedTags(tags);
   };
 
-  if (notes.length === 0) {
+  const formatDate = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  if (isLoading) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          No notes yet. Create your first note!
-        </Typography>
-      </Box>
+      <Paper sx={{ p: 2, height: '100%' }}>
+        <Typography>Loading notes...</Typography>
+      </Paper>
+    );
+  }
+
+  if (error) {
+    return (
+      <Paper sx={{ p: 2, height: '100%' }}>
+        <Typography color="error">Failed to load notes</Typography>
+      </Paper>
     );
   }
 
   return (
-    <Box>
-      <List sx={{ p: 0 }}>
-        {notes.map((note, index) => (
-          <Box key={note.timestamp}>
-            <ListItem
-              sx={{ px: 0, py: 0 }}
-              secondaryAction={
-                <IconButton
-                  edge="end"
-                  aria-label="delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(note.timestamp);
-                  }}
-                  sx={{ 
-                    mr: 1,
-                    '&:hover': {
-                      backgroundColor: 'error.light',
-                      color: 'error.contrastText',
-                    }
-                  }}
-                >
-                  <DeleteIcon />
-                </IconButton>
+    <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h6" component="h2" sx={{ mb: 2 }}>
+          Notes ({notes.length})
+        </Typography>
+        <TagFilter selectedTags={selectedTags} onTagsChange={handleTagsChange} />
+      </Box>
+      
+      <List sx={{ flex: 1, overflow: 'auto', p: 0 }}>
+        {notes.length === 0 ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {selectedTags.length > 0 
+                ? `No notes found with tags: ${selectedTags.join(', ')}`
+                : 'No notes yet. Create your first note!'
               }
-              disablePadding
-            >
-              <ListItemButton
-                selected={selectedNote === note.timestamp}
-                onClick={() => onSelectNote(note.timestamp)}
+            </Typography>
+          </Box>
+        ) : (
+          notes.map((note, index) => (
+            <React.Fragment key={note.timestamp}>
+              <ListItem
+                button
+                selected={selectedNoteId === note.timestamp}
+                onClick={() => onNoteSelect(note.timestamp)}
                 sx={{
-                  borderRadius: 1,
-                  mx: 1,
-                  mb: 1,
-                  '&.Mui-selected': {
-                    backgroundColor: 'primary.light',
-                    '&:hover': {
-                      backgroundColor: 'primary.main',
-                    },
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  py: 2,
+                  px: 2,
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
                   },
                 }}
               >
-                <ListItemText
-                  primary={
-                    <Typography 
-                      variant="subtitle1" 
-                      component="div"
-                      sx={{ 
-                        fontWeight: selectedNote === note.timestamp ? 600 : 400,
-                        mb: 0.5
+                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle1"
+                      component="h3"
+                      sx={{
+                        fontWeight: 600,
+                        mb: 0.5,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
                       {note.title}
                     </Typography>
-                  }
-                  secondary={
-                    <Box>
-                      <Chip
-                        label={format(new Date(note.timestamp), 'MMM d, yyyy')}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {note.contents}
+                    </Typography>
+                    {note.tags && note.tags.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                        {note.tags.map((tag, tagIndex) => (
+                          <Chip
+                            key={tagIndex}
+                            label={tag}
+                            size="small"
+                            icon={<LocalOfferIcon />}
+                            variant="outlined"
+                            color="primary"
+                          />
+                        ))}
+                      </Box>
+                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDate(note.timestamp)}
+                    </Typography>
+                  </Box>
+                  
+                  {!isMobile && (
+                    <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
+                      <IconButton
                         size="small"
-                        variant="outlined"
-                        sx={{ mb: 1, fontSize: '0.75rem' }}
-                      />
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          lineHeight: 1.4,
-                          mb: 1,
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNoteEdit(note.timestamp);
                         }}
+                        sx={{ color: 'primary.main' }}
                       >
-                        {note.summary}
-                      </Typography>
-                      {note.tags && note.tags.length > 0 && (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {note.tags.slice(0, 3).map((tag, tagIndex) => (
-                            <Chip
-                              key={tagIndex}
-                              label={tag}
-                              size="small"
-                              icon={<LocalOfferIcon />}
-                              variant="outlined"
-                              color="secondary"
-                              sx={{ fontSize: '0.7rem', height: 20 }}
-                            />
-                          ))}
-                          {note.tags.length > 3 && (
-                            <Chip
-                              label={`+${note.tags.length - 3}`}
-                              size="small"
-                              variant="outlined"
-                              color="default"
-                              sx={{ fontSize: '0.7rem', height: 20 }}
-                            />
-                          )}
-                        </Box>
-                      )}
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNoteDelete(note.timestamp);
+                        }}
+                        sx={{ color: 'error.main' }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
                     </Box>
-                  }
-                />
-              </ListItemButton>
-            </ListItem>
-            {index < notes.length - 1 && <Divider sx={{ mx: 2 }} />}
-          </Box>
-        ))}
+                  )}
+                </Box>
+              </ListItem>
+              {index < notes.length - 1 && <Divider />}
+            </React.Fragment>
+          ))
+        )}
       </List>
-    </Box>
+    </Paper>
   );
 } 

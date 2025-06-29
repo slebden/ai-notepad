@@ -572,6 +572,47 @@ async def health_check():
         "ai_model_loaded": model is not None and tokenizer is not None
     }
 
+@app.get("/tags/", response_model=list[str], tags=["Tags"], summary="Get all unique tags")
+async def get_all_tags():
+    """
+    Retrieve all unique tags used across all notes.
+    Returns a list of tag strings.
+    """
+    notes = storage.get_all_notes()
+    all_tags = set()
+    
+    for note in notes:
+        if note.tags:
+            all_tags.update(note.tags)
+    
+    return sorted(list(all_tags))
+
+@app.get("/notes/filter/", response_model=list[Note], tags=["Notes"], summary="Get notes filtered by tags")
+async def get_notes_by_tags(tags: str = ""):
+    """
+    Retrieve notes that have any of the specified tags.
+    
+    - **tags**: Comma-separated list of tags to filter by (e.g., "work,important")
+    """
+    if not tags.strip():
+        # If no tags specified, return all notes
+        return storage.get_all_notes()
+    
+    # Parse the tags parameter
+    filter_tags = [tag.strip().lower() for tag in tags.split(",") if tag.strip()]
+    
+    notes = storage.get_all_notes()
+    filtered_notes = []
+    
+    for note in notes:
+        if note.tags:
+            note_tags_lower = [tag.lower() for tag in note.tags]
+            # Check if any of the filter tags match any of the note's tags
+            if any(filter_tag in note_tags_lower for filter_tag in filter_tags):
+                filtered_notes.append(note)
+    
+    return filtered_notes
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, ssl_keyfile="localhost-key.pem", ssl_certfile="localhost.pem") 

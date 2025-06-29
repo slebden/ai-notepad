@@ -64,11 +64,38 @@ function App() {
     setSelectedNote(null);
   };
 
-  const handleNoteSelect = (timestamp: string) => {
-    setSelectedNote(timestamp);
+  const handleNoteSelect = (noteId: string) => {
+    setSelectedNote(noteId);
     setIsCreating(false);
     if (isMobile) {
       setMobileOpen(false);
+    }
+  };
+
+  const handleNoteEdit = (noteId: string) => {
+    setSelectedNote(noteId);
+    setIsCreating(false);
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  };
+
+  const handleNoteDelete = async (noteId: string) => {
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      try {
+        // Import the delete function dynamically to avoid circular imports
+        const { deleteNote } = await import('./api');
+        await deleteNote(noteId);
+        
+        // If the deleted note was selected, clear the selection
+        if (selectedNote === noteId) {
+          setSelectedNote(null);
+          setIsCreating(false);
+        }
+      } catch (error) {
+        console.error('Failed to delete note:', error);
+        alert('Failed to delete note');
+      }
     }
   };
 
@@ -88,7 +115,12 @@ function App() {
           </IconButton>
         )}
       </Box>
-      <NoteList onSelectNote={handleNoteSelect} selectedNote={selectedNote} />
+      <NoteList 
+        selectedNoteId={selectedNote}
+        onNoteSelect={handleNoteSelect}
+        onNoteEdit={handleNoteEdit}
+        onNoteDelete={handleNoteDelete}
+      />
     </Box>
   );
 

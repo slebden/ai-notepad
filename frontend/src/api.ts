@@ -64,4 +64,17 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<{ transcription:
     timeout: 30000, // 30 second timeout for transcription
   });
   return response.data;
+};
+
+export const getAllTags = async (): Promise<string[]> => {
+  const response = await api.get('/tags/');
+  return response.data;
+};
+
+export const getNotesByTags = async (tags: string[]): Promise<Note[]> => {
+  const tagsParam = tags.join(',');
+  const response = await api.get('/notes/filter/', {
+    params: { tags: tagsParam }
+  });
+  return response.data;
 }; 

@@ -13,6 +13,7 @@ A modern notepad application with AI-powered features, voice transcription, and 
 - **Smart Note Creation**: AI automatically generates titles, summaries, and tags from your content
 - **Tag Management**: Organize notes with tags - either manually or automatically generated
 - **Content-Based Tagging**: Add tags directly in your note content using patterns like "tag: journal. This is my note"
+- **Tag Filtering**: Filter notes by one or more tags to quickly find what you need
 - **Real-time Updates**: Changes are saved automatically and reflected immediately
 
 ## 🏗️ Architecture
@@ -297,4 +298,11 @@ The system will automatically:
 - Use the extracted tags for organization
 
 ### 3. AI-Generated Tags
-If no tags are provided manually or in content, the AI will automatically generate relevant tags based on your note content. 
+If no tags are provided manually or in content, the AI will automatically generate relevant tags based on your note content.
+
+### 4. Tag Filtering
+Filter your notes by selecting one or more tags:
+- **Desktop**: Click on tag chips to select/deselect them
+- **Mobile**: Use the dropdown to select multiple tags
+- **Clear filters**: Click "Clear all" to show all notes again
+- **Combined filtering**: Notes matching any of the selected tags will be shown 
